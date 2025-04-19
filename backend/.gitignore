@@ -1,29 +1,70 @@
-# Dependency directories
+# Зависимости
 node_modules/
+package-lock.json
 
-# Environment files
+# Файлы окружения
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# Hardhat files
-cache/
+# Логи
+logs/
+*.log
+
+# Временные файлы
+tmp/
+temp/
+
+# Кэш и сборка
+.cache/
+dist/
+build/
+
+# База данных и миграции
+migrations/backup/
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+
+# Сессии и сохраненные данные
+sessions/
+storage/
+uploads/
+data/
+vector_store/
+
+# Ключи и сертификаты
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Специфичные для Ethereum
 artifacts/
+cache/
+typechain-types/
+hardhat-cache/
+forge-cache/
 
-# Log files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Специфичные для Node.js
+.npm
+.yarn
+.pnp.*
+coverage/
+.nyc_output/
 
-# Editor directories and files
+# JWT и токены
+*.jwt
+*token*
+*secret*
+
+# Локальные конфигурации
+config/local.*
+*.local.js
+
+# IDE и редакторы
 .idea/
 .vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Coverage directory used by tools like istanbul
-coverage/
-coverage.json
+*.swp
+*.swo 

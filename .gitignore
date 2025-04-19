@@ -1,33 +1,133 @@
-# Dependency directories
+# Зависимости
 node_modules/
+/.pnp
+.pnp.js
 
-# Build output
-dist/
-build/
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Hardhat files
-cache/
-artifacts/
-
-# Log files
+# Логи
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
-# Editor directories and files
+# Файлы окружения
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+.env.backup
+
+# Секреты
+*.secret
+*secrets*
+*secret*
+*password*
+*token*
+*private*
+*key.*
+*key-*
+*key
+
+# Сертификаты
+*.cert
+*.crt
+*.pem
+*.key
+*.p12
+*.pfx
+*.csr
+*.srl
+
+# Файлы сборки
+/dist
+/build
+/out
+.output
+.nuxt
+.cache
+.temp
+
+# Кэши и временные файлы
+.cache/
+.temp/
+.DS_Store
 .idea/
 .vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+.vs/
+*.sublime-*
+*.code-workspace
+.history
+Thumbs.db
+desktop.ini
 
-# Coverage directory used by tools like istanbul
+# Docker тома и файлы
+/data
+/volumes
+.docker
+docker-data/
+.dockerignore
+
+# Локальные настройки
+.prettierrc.local
+.eslintrc.local
+.babelrc.local
+*.local.js
+*.local.json
+*.local.config.js
+
+# Файлы базы данных
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql
+
+# Временные файлы
+*.tmp
+*~
+tmp/
+temp/
+
+# Артефакты тестирования
 coverage/
-coverage.json 
+.nyc_output
+junit.xml
+test-results/
+
+# Сессии
+sessions/
+*.sess
+*session*
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Специфичные для Ethereum
+.openzeppelin
+artifacts/
+cache/
+typechain-types/
+
+# Пользовательские файлы
+uploads/
+download/
+media/
+public/uploads/
+storage/
+
+# Логи безопасности
+security-logs/
+audit-logs/ 

@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dapp-postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME:-dapp_db}
+      POSTGRES_USER: ${DB_USER:-dapp_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dapp_password}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dapp_user} -d ${DB_NAME:-dapp_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dapp-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    command: serve
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dapp-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=${PORT:-8000}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-dapp_db}
+      - DB_USER=${DB_USER:-dapp_user}
+      - DB_PASSWORD=${DB_PASSWORD:-dapp_password}
+      - DATABASE_URL=postgresql://${DB_USER:-dapp_user}:${DB_PASSWORD:-dapp_password}@postgres:5432/${DB_NAME:-dapp_db}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
+      - OLLAMA_EMBEDDINGS_MODEL=${OLLAMA_EMBEDDINGS_MODEL:-qwen2.5:7b}
+      - FRONTEND_URL=http://localhost:5173
+    ports:
+      - "8000:8000"
+    command: sh -c "yarn run dev"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dapp-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    command: yarn run dev -- --host 0.0.0.0
+
+  ollama-setup:
+    image: curlimages/curl:latest
+    container_name: dapp-ollama-setup
+    depends_on:
+      - ollama
+    restart: on-failure
+    command: |
+      sh -c "
+        echo 'Waiting for Ollama to be ready...'
+        until curl -s http://ollama:11434/api/tags >/dev/null; do
+          sleep 5
+        done
+        echo 'Ollama is ready, pulling qwen2.5-7b model...'
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"${OLLAMA_MODEL:-qwen2.5:7b}\"}' -H 'Content-Type: application/json'
+        echo 'Done!'
+      "
+
+volumes:
+  postgres_data:
+  ollama_data:
+  backend_node_modules:
+  frontend_node_modules: 

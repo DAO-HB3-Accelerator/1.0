@@ -1,105 +1,34 @@
+import { Buffer } from 'buffer';
+globalThis.Buffer = Buffer;
+
 import { createApp } from 'vue';
 import App from './App.vue';
-import { createAppKit } from '@reown/appkit/vue';
-import { EthersAdapter } from '@reown/appkit-adapter-ethers';
-import { sepolia } from '@reown/appkit/networks';
-import { createSIWEConfig, formatMessage } from '@reown/appkit-siwe';
+import router from './router';
+import axios from 'axios';
 
-// Определяем базовый URL для API
-const BASE_URL = 'http://localhost:3000';
+// Настройка axios
+// В Docker контейнере localhost:8000 не работает, поэтому используем явное значение
+const apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:8000' : import.meta.env.VITE_API_URL;
+axios.defaults.baseURL = apiUrl;
+axios.defaults.withCredentials = true;
 
-// 1. Get projectId
-const projectId = '9a6515f7259ebccd149fd53341e01e6b';
-
-// 2. Create SIWE config
-const siweConfig = createSIWEConfig({
-  getMessageParams: async () => ({
-    domain: window.location.host,
-    uri: window.location.origin,
-    chains: [11155111], // Sepolia chainId
-    statement: 'Подпишите это сообщение для входа в DApp for Business. Это безопасно и не требует оплаты.',
-  }),
-  createMessage: ({ address, ...args }) => formatMessage(args, address),
-  getNonce: async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/nonce`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'text/plain'
-        }
-      });
-      if (!res.ok) throw new Error('Failed to get nonce');
-      return await res.text();
-    } catch (error) {
-      console.error('Ошибка получения nonce:', error);
-      throw error;
-    }
-  },
-  getSession: async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/session`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (error) {
-      console.error('Ошибка получения сессии:', error);
-      return null;
-    }
-  },
-  verifyMessage: async ({ message, signature }) => {
-    try {
-      const res = await fetch(`${BASE_URL}/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ message, signature }),
-        credentials: 'include'
-      });
-      return res.ok;
-    } catch (error) {
-      console.error('Ошибка верификации:', error);
-      return false;
-    }
-  },
-  signOut: async () => {
-    try {
-      await fetch(`${BASE_URL}/signout`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-    } catch (error) {
-      console.error('Ошибка выхода:', error);
-    }
-  }
-});
-
-// 3. Create AppKit instance
-createAppKit({
-  adapters: [new EthersAdapter()],
-  networks: [sepolia],
-  projectId,
-  metadata: {
-    name: 'DApp for Business',
-    description: 'Smart Contract Management DApp',
-    url: window.location.origin,
-    icons: ['https://avatars.githubusercontent.com/u/37784886']
-  },
-  defaultNetwork: sepolia,
-  features: {
-    analytics: true,
-    connectMethodsOrder: ['wallet', 'email', 'social'],
-    autoConnect: false
-  },
-  siweConfig
-});
-
+// Создаем и монтируем приложение Vue
 const app = createApp(App);
-app.mount('#app'); 
+
+app.use(router);
+
+// Не используем заглушки, так как сервер работает
+// if (import.meta.env.DEV) {
+//   Promise.all([
+//     import('./mocks/chatApi.js'),
+//     import('./mocks/authApi.js'),
+//     import('./mocks/kanbanApi.js'),
+//     import('./mocks/contractApi.js')
+//   ]).catch(err => console.error('Failed to load API mocks:', err));
+// }
+
+console.log('API URL:', apiUrl);
+console.log('main.js: Starting application with router');
+
+app.mount('#app');
+console.log('main.js: Application with router mounted');

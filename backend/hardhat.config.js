@@ -1,12 +1,12 @@
-require("@nomiclabs/hardhat-waffle");
-require("dotenv").config();
+require('@nomicfoundation/hardhat-toolbox');
+require('dotenv').config();
 
 module.exports = {
-  solidity: "0.8.0",
+  solidity: '0.8.20',
   networks: {
     sepolia: {
       url: process.env.ETHEREUM_NETWORK_URL,
-      accounts: [process.env.PRIVATE_KEY]
-    }
-  }
-}; 
+      accounts: [process.env.PRIVATE_KEY],
+    },
+  },
+};

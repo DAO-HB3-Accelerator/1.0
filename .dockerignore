@@ -1,0 +1,113 @@
+# Основной код системы контроля версий
+.git
+.github
+.gitlab-ci.yml
+.gitignore
+.gitattributes
+
+# Зависимости
+**/node_modules
+**/.pnp
+.pnp.js
+**/package-lock.json
+**/yarn.lock
+.npm
+.yarn
+
+# Файлы окружения и секреты
+**/.env
+**/.env.*
+!**/.env.example
+**/*.secret
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*.crt
+**/*.cert
+**/*.csr
+**/*.srl
+**/secrets/
+
+# Логи и отчеты
+**/logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/coverage
+**/.nyc_output
+
+# Временные файлы и кэш
+**/.cache
+**/.temp
+**/tmp
+**/temp
+**/*.tmp
+**/*~
+**/.DS_Store
+**/Thumbs.db
+
+# IDE и редакторы
+**/.idea
+**/.vscode
+**/*.swp
+**/*.swo
+**/*.sublime-*
+
+# Артефакты сборки
+**/dist
+**/build
+**/.nuxt
+**/.output
+**/artifacts
+
+# Данные и сессии, кроме необходимых для инициализации
+**/data/*
+!**/data/init
+**/sessions
+**/storage/*
+!**/storage/app/public
+**/uploads/*
+!**/uploads/.gitkeep
+
+# Тесты и документация
+**/test
+**/tests
+**/spec
+**/__tests__
+**/docs
+**/doc
+**/documentation
+**/*.md
+!**/README.md
+**/CHANGELOG.md
+**/LICENSE
+
+# Docker-специфичные файлы
+**/Dockerfile*
+**/.dockerignore
+**/docker-compose*.yml
+
+# Ethereum-специфичные файлы
+**/.openzeppelin
+**/cache
+**/typechain-types
+
+# Другие ненужные файлы
+**/.github
+**/.gitlab
+**/.gitattributes
+**/.editorconfig
+**/.prettierrc
+**/.eslintrc
+**/.babelrc
+**/.browserslistrc
+**/README.md
+**/CONTRIBUTING.md
+**/CHANGELOG.md
+**/LICENSE
+**/.travis.yml
+**/.circleci
+**/appveyor.yml
+**/renovate.json 

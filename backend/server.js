@@ -1,211 +1,111 @@
-import express from 'express';
-import cors from 'cors';
-import session from 'express-session';
-import { generateNonce, SiweMessage } from 'siwe';
-import { createPublicClient, http, verifyMessage } from 'viem';
-import { sepolia } from 'viem/chains';
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { ethers } = require('ethers');
+const emailBot = require('./services/emailBot');
+const session = require('express-session');
+const { app, nonceStore } = require('./app');
+const usersRouter = require('./routes/users');
+const authRouter = require('./routes/auth');
+const identitiesRouter = require('./routes/identities');
+const chatRouter = require('./routes/chat');
+const { pool } = require('./db');
+const helmet = require('helmet');
+const { getBot, stopBot } = require('./services/telegramBot');
+const pgSession = require('connect-pg-simple')(session);
+const authService = require('./services/auth-service');
+const logger = require('./utils/logger');
 
-const app = express();
+const PORT = process.env.PORT || 8000;
 
-// Создаем Viem клиент для Sepolia
-const client = createPublicClient({
-  chain: sepolia,
-  transport: http()
-});
+console.log('Начало выполнения server.js');
+console.log('Переменная окружения PORT:', process.env.PORT);
+console.log('Используемый порт:', process.env.PORT || 8000);
 
-// Конфигурация CORS для работы с frontend
-app.use(cors({
-  origin: ['http://localhost:5174', 'http://127.0.0.1:5173', 'http://localhost:5173'],
-  credentials: true,
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Accept']
-}));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Инициализация сервисов
+async function initServices() {
+  try {
+    console.log('Инициализация сервисов...');
+    
+    // Останавливаем предыдущий экземпляр бота
+    await stopBot();
+    
+    // Добавляем обработку ошибок при запуске бота
+    try {
+      await getBot(); // getBot теперь асинхронный и сам запускает бота
+      console.log('Telegram bot started');
+      
+      // Добавляем graceful shutdown
+      process.once('SIGINT', async () => {
+        await stopBot();
+        process.exit(0);
+      });
+      process.once('SIGTERM', async () => {
+        await stopBot();
+        process.exit(0);
+      });
+    } catch (error) {
+      if (error.code === 409) {
+        logger.warn('Another instance of Telegram bot is running. This is normal during development with nodemon');
+        // Просто логируем ошибку и продолжаем работу
+        // Бот будет запущен при следующем перезапуске
+      } else {
+        logger.error('Error launching Telegram bot:', error);
+      }
+    }
+    
+    console.log('Все сервисы успешно инициализированы');
+  } catch (error) {
+    console.error('Ошибка при инициализации сервисов:', error);
+  }
+}
 
 // Настройка сессий
 app.use(session({
-  name: 'siwe-dapp',
-  secret: "siwe-dapp-secret",
-  resave: true,
+  store: new pgSession({
+    pool: pool,
+    tableName: 'session'
+  }),
+  secret: process.env.SESSION_SECRET || 'hb3atoken',
+  resave: false,
   saveUninitialized: true,
-  cookie: { 
-    secure: false, 
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000 // 24 часа
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 дней
   }
 }));
 
-// Логирование запросов
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
+// Маршруты API
+app.use('/api/users', usersRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/identities', identitiesRouter);
+app.use('/api/chat', chatRouter);
+
+// Эндпоинт для проверки состояния сервера
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Генерация nonce
-app.get('/nonce', (_, res) => {
+// Запуск сервера
+const host = app.get('host');
+app.listen(PORT, host, async () => {
   try {
-    const nonce = generateNonce();
-    res.setHeader('Content-Type', 'text/plain');
-    res.status(200).send(nonce);
+    await initServices();
+    console.log(`Server is running on http://${host}:${PORT}`);
   } catch (error) {
-    console.error('Ошибка генерации nonce:', error);
-    res.status(500).send('Internal Server Error');
+    console.error('Error starting server:', error);
+    process.exit(1);
   }
-});
-
-// Верификация сообщения
-app.post('/verify', async (req, res) => {
-  try {
-    if (!req.body.message) {
-      return res.status(400).json({ error: 'SiweMessage is undefined' });
-    }
-
-    const { message, signature } = req.body;
-    console.log('Верификация сообщения:', { message, signature });
-
-    // Создаем и парсим SIWE сообщение
-    const siweMessage = new SiweMessage(message);
-    
-    // Проверяем базовые параметры
-    if (siweMessage.chainId !== 11155111) { // Sepolia
-      throw new Error('Invalid chain ID. Only Sepolia is supported.');
-    }
-
-    if (siweMessage.domain !== '127.0.0.1:5173') {
-      throw new Error('Invalid domain');
-    }
-
-    // Проверяем время
-    const currentTime = new Date().getTime();
-    const messageTime = new Date(siweMessage.issuedAt).getTime();
-    const timeDiff = currentTime - messageTime;
-    
-    // Временно отключаем проверку времени для разработки
-    console.log('Разница во времени:', {
-      currentTime: new Date(currentTime).toISOString(),
-      messageTime: new Date(messageTime).toISOString(),
-      diffMinutes: Math.abs(timeDiff) / (60 * 1000)
-    });
-
-    // Верифицируем сообщение
-    console.log('Начинаем валидацию SIWE сообщения...');
-    const fields = await siweMessage.validate(signature);
-    console.log('SIWE валидация успешна:', fields);
-
-    // Проверяем подпись через viem
-    console.log('Проверяем подпись через viem...');
-    const isValid = await client.verifyMessage({
-      address: fields.address,
-      message: message,
-      signature: signature
-    });
-    console.log('Результат проверки подписи:', isValid);
-
-    if (!isValid) {
-      throw new Error('Invalid signature');
-    }
-
-    console.log('Верификация успешна:', {
-      address: fields.address,
-      chainId: fields.chainId,
-      domain: fields.domain
-    });
-
-    // Сохраняем сессию
-    req.session.siwe = { 
-      address: fields.address,
-      chainId: fields.chainId,
-      domain: fields.domain,
-      issuedAt: fields.issuedAt
-    };
-    
-    req.session.save(() => {
-      res.status(200).json({ 
-        success: true,
-        address: fields.address,
-        chainId: fields.chainId,
-        domain: fields.domain
-      });
-    });
-  } catch (error) {
-    console.error('Ошибка верификации:', error);
-    req.session.siwe = null;
-    req.session.nonce = null;
-    req.session.save(() => {
-      res.status(400).json({ 
-        error: 'Verification failed',
-        message: error.message 
-      });
-    });
-  }
-});
-
-// Получение сессии
-app.get('/session', (req, res) => {
-  try {
-    res.json(req.session.siwe || null);
-  } catch (error) {
-    console.error('Ошибка получения сессии:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// Выход
-app.get('/signout', (req, res) => {
-  try {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Ошибка при удалении сессии:', err);
-        return res.status(500).json({ error: 'Failed to destroy session' });
-      }
-      res.status(200).json({ success: true });
-    });
-  } catch (error) {
-    console.error('Ошибка выхода:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// Базовый маршрут
-app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    endpoints: {
-      nonce: 'GET /nonce',
-      verify: 'POST /verify',
-      session: 'GET /session',
-      signout: 'GET /signout'
-    }
-  });
-});
-
-// Обработка 404
-app.use((req, res) => {
-  console.log(`404: ${req.method} ${req.url}`);
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Endpoint ${req.method} ${req.url} не существует`
-  });
 });
 
 // Обработка ошибок
-app.use((err, req, res, next) => {
-  console.error('Ошибка сервера:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message
-  });
+process.on('unhandledRejection', (err) => {
+  logger.error('Unhandled Rejection:', err);
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`SIWE сервер запущен на порту ${PORT}`);
-  console.log('Доступные эндпоинты:');
-  console.log('  GET  /          - Информация о сервере');
-  console.log('  GET  /nonce     - Получить nonce');
-  console.log('  POST /verify    - Верифицировать сообщение');
-  console.log('  GET  /session   - Получить текущую сессию');
-  console.log('  GET  /signout   - Выйти из системы');
-}); 
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception:', err);
+});
+
+module.exports = app;
