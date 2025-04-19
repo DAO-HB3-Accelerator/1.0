@@ -1,63 +1,50 @@
 <template>
-  <div v-if="isAuthenticated">
-    <div class="conversation-list">
-      <div class="list-header">
-        <h3>Диалоги</h3>
-        <button @click="createNewConversation" class="new-conversation-btn">
-          <span>+</span> Новый диалог
-        </button>
-      </div>
+  <div class="conversation-list">
+    <div class="list-header">
+      <h3>Диалоги</h3>
+      <button @click="createNewConversation" class="new-conversation-btn">
+        <span>+</span> Новый диалог
+      </button>
+    </div>
 
-      <div v-if="loading" class="loading">Загрузка диалогов...</div>
+    <div v-if="loading" class="loading">Загрузка диалогов...</div>
 
-      <div v-else-if="conversations.length === 0" class="empty-list">
-        <p>У вас пока нет диалогов.</p>
-        <p>Создайте новый диалог, чтобы начать общение с ИИ-ассистентом.</p>
-      </div>
+    <div v-else-if="conversations.length === 0" class="empty-list">
+      <p>У вас пока нет диалогов.</p>
+      <p>Создайте новый диалог, чтобы начать общение с ИИ-ассистентом.</p>
+    </div>
 
-      <div v-else class="conversations">
-        <div
-          v-for="conversation in conversations"
-          :key="conversation.conversation_id"
-          :class="[
-            'conversation-item',
-            { active: selectedConversationId === conversation.conversation_id },
-          ]"
-          @click="selectConversation(conversation.conversation_id)"
-        >
-          <div class="conversation-title">{{ conversation.title }}</div>
-          <div class="conversation-meta">
-            <span class="message-count">{{ conversation.message_count }} сообщений</span>
-            <span class="time">{{ formatTime(conversation.last_activity) }}</span>
-          </div>
+    <div v-else class="conversations">
+      <div
+        v-for="conversation in conversations"
+        :key="conversation.conversation_id"
+        :class="[
+          'conversation-item',
+          { active: selectedConversationId === conversation.conversation_id },
+        ]"
+        @click="selectConversation(conversation.conversation_id)"
+      >
+        <div class="conversation-title">{{ conversation.title }}</div>
+        <div class="conversation-meta">
+          <span class="message-count">{{ conversation.message_count }} сообщений</span>
+          <span class="time">{{ formatTime(conversation.last_activity) }}</span>
         </div>
       </div>
     </div>
   </div>
-  <div v-else class="connect-wallet-prompt">
-    <p>Подключите кошелек для просмотра бесед</p>
-  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, defineEmits, watch, inject } from 'vue';
+import { ref, onMounted, computed, defineEmits } from 'vue';
+import { useAuthStore } from '../../stores/auth';
 import axios from 'axios';
 
 const emit = defineEmits(['select-conversation']);
-const auth = inject('auth');
-const isAuthenticated = computed(() => auth.isAuthenticated.value);
+const authStore = useAuthStore();
 
 const conversations = ref([]);
 const loading = ref(true);
 const selectedConversationId = ref(null);
-
-// Следим за изменением статуса аутентификации
-watch(() => isAuthenticated.value, (authenticated) => {
-  if (!authenticated) {
-    conversations.value = []; // Очищаем список бесед при отключении
-    selectedConversationId.value = null;
-  }
-});
 
 // Загрузка списка диалогов
 const fetchConversations = async () => {
@@ -234,11 +221,5 @@ defineExpose({
 
 .time {
   font-size: 0.8rem;
-}
-
-.connect-wallet-prompt {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
 }
 </style>

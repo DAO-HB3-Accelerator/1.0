@@ -1,173 +1,195 @@
 <template>
-  <div class="email-connection">
-    <div v-if="!showVerification" class="email-form">
+  <div class="email-connect">
+    <p>Подключите свой email для быстрой авторизации.</p>
+    
+    <div class="email-form">
       <input 
-        v-model="email"
-        type="email"
-        placeholder="Введите email"
-        class="email-input"
+        type="email" 
+        v-model="email" 
+        placeholder="Введите ваш email" 
+        :disabled="loading || verificationSent"
       />
       <button 
-        @click="requestCode"
-        :disabled="isLoading || !isValidEmail"
-        class="email-btn"
+        @click="sendVerification" 
+        class="connect-button"
+        :disabled="!isValidEmail || loading || verificationSent"
       >
-        {{ isLoading ? 'Отправка...' : 'Получить код' }}
+        <span class="email-icon">✉️</span> {{ verificationSent ? 'Код отправлен' : 'Отправить код' }}
       </button>
     </div>
-    <div v-else class="verification-form">
-      <p class="verification-info">Код отправлен на {{ email }}</p>
+    
+    <div v-if="verificationSent" class="verification-form">
       <input 
-        v-model="code"
-        type="text"
-        placeholder="Введите код"
-        class="code-input"
+        type="text" 
+        v-model="verificationCode" 
+        placeholder="Введите код подтверждения" 
+        :disabled="loading"
       />
       <button 
-        @click="verifyCode"
-        :disabled="isLoading || !code"
-        class="verify-btn"
+        @click="verifyEmail" 
+        class="verify-button"
+        :disabled="!verificationCode || loading"
       >
-        {{ isLoading ? 'Проверка...' : 'Подтвердить' }}
-      </button>
-      <button 
-        @click="resetForm"
-        class="reset-btn"
-      >
-        Изменить email
+        Подтвердить
       </button>
     </div>
+    
+    <div v-if="loading" class="loading">Загрузка...</div>
     <div v-if="error" class="error">{{ error }}</div>
+    <div v-if="success" class="success">{{ success }}</div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import axios from '@/api/axios';
-import { useAuth } from '@/composables/useAuth';
-
-const emit = defineEmits(['close']);
-const { linkIdentity } = useAuth();
+import axios from 'axios';
 
 const email = ref('');
-const code = ref('');
+const verificationCode = ref('');
+const loading = ref(false);
 const error = ref('');
-const isLoading = ref(false);
-const showVerification = ref(false);
+const success = ref('');
+const verificationSent = ref(false);
 
 const isValidEmail = computed(() => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.value);
 });
 
-const requestCode = async () => {
+async function sendVerification() {
+  if (!isValidEmail.value) return;
+  
   try {
-    isLoading.value = true;
+    loading.value = true;
     error.value = '';
+    success.value = '';
     
-    const response = await axios.post('/api/auth/email/request-verification', {
+    // Запрос на отправку кода подтверждения
+    const response = await axios.post('/api/auth/email', {
       email: email.value
+    }, {
+      withCredentials: true
     });
     
-    if (response.data.success) {
-      showVerification.value = true;
-    } else {
-      error.value = response.data.error || 'Ошибка отправки кода';
+    if (response.data.error) {
+      error.value = `Ошибка: ${response.data.error}`;
+      return;
     }
-  } catch (err) {
-    error.value = err.response?.data?.error || 'Ошибка отправки кода';
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const verifyCode = async () => {
-  try {
-    isLoading.value = true;
-    error.value = '';
     
+    verificationSent.value = true;
+    success.value = `Код подтверждения отправлен на ${email.value}`;
+  } catch (err) {
+    console.error('Error sending verification code:', err);
+    error.value = 'Ошибка при отправке кода подтверждения';
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function verifyEmail() {
+  if (!verificationCode.value) return;
+  
+  try {
+    loading.value = true;
+    error.value = '';
+    success.value = '';
+    
+    // Запрос на проверку кода
     const response = await axios.post('/api/auth/email/verify', {
       email: email.value,
-      code: code.value
+      code: verificationCode.value
+    }, {
+      withCredentials: true
     });
     
-    if (response.data.success) {
-      // Связываем email с текущим пользователем
-      await linkIdentity('email', email.value);
-      emit('close');
-    } else {
-      error.value = response.data.error || 'Неверный код';
+    if (response.data.error) {
+      error.value = `Ошибка: ${response.data.error}`;
+      return;
     }
+    
+    success.value = 'Email успешно подтвержден';
+    
+    // Сбрасываем форму
+    setTimeout(() => {
+      email.value = '';
+      verificationCode.value = '';
+      verificationSent.value = false;
+      success.value = '';
+    }, 3000);
   } catch (err) {
-    error.value = err.response?.data?.error || 'Ошибка проверки кода';
+    console.error('Error verifying email:', err);
+    error.value = 'Ошибка при проверке кода подтверждения';
   } finally {
-    isLoading.value = false;
+    loading.value = false;
   }
-};
-
-const resetForm = () => {
-  email.value = '';
-  code.value = '';
-  error.value = '';
-  showVerification.value = false;
-};
+}
 </script>
 
 <style scoped>
-.email-connection {
-  padding: 20px;
-  max-width: 400px;
-}
-
-.email-form,
-.verification-form {
+.email-connect {
   display: flex;
   flex-direction: column;
+  gap: 15px;
+}
+
+.email-form, .verification-form {
+  display: flex;
   gap: 10px;
 }
 
-.email-input,
-.code-input {
-  padding: 8px 12px;
+input {
+  flex: 1;
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
 }
 
-.email-btn,
-.verify-btn,
-.reset-btn {
-  padding: 10px;
+.connect-button, .verify-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 15px;
+  background-color: #4caf50;
+  color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
+  font-size: 16px;
+  transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
-.email-btn,
-.verify-btn {
-  background-color: #48bb78;
-  color: white;
+.connect-button:hover, .verify-button:hover {
+  background-color: #45a049;
 }
 
-.reset-btn {
-  background-color: #e2e8f0;
-  color: #4a5568;
+.connect-button:disabled, .verify-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
-.verification-info {
-  color: #4a5568;
-  font-size: 14px;
+.email-icon {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.loading, .error, .success {
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.loading {
+  background-color: #f8f9fa;
 }
 
 .error {
-  color: #e53e3e;
-  margin-top: 5px;
-  font-size: 14px;
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.success {
+  background-color: #d4edda;
+  color: #155724;
 }
 </style>

@@ -18,18 +18,15 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,vue,json,md}\"",
-    "format:check": "prettier --check \"**/*.{js,vue,json,md}\"",
-    "run-migrations": "node scripts/run-migrations.js",
-    "fix-duplicates": "node scripts/fix-duplicate-identities.js"
+    "format:check": "prettier --check \"**/*.{js,vue,json,md}\""
   },
   "dependencies": {
     "@langchain/community": "^0.3.34",
     "@langchain/core": "0.3.0",
     "@langchain/ollama": "^0.2.0",
-    "@openzeppelin/contracts": "^5.2.0",
-    "axios": "^1.8.4",
+    "@openzeppelin/contracts": "4.5.0",
+    "axios": "^1.6.7",
     "connect-pg-simple": "^10.0.0",
-    "cookie": "^1.0.2",
     "cors": "^2.8.5",
     "cron": "^4.1.0",
     "csurf": "^1.11.0",
@@ -41,20 +38,15 @@
     "helmet": "^8.0.0",
     "hnswlib-node": "^3.0.0",
     "imap": "^0.8.19",
-    "langchain": "^0.3.19",
+    "langchain": "0.0.200",
     "mailparser": "^3.7.2",
     "node-cron": "^3.0.3",
     "node-telegram-bot-api": "^0.66.0",
     "nodemailer": "^6.10.0",
     "pg": "^8.10.0",
-    "semver": "^7.7.1",
     "session-file-store": "^1.5.0",
     "siwe": "^2.1.4",
-    "telegraf": "^4.16.3",
-    "utf7": "^1.0.2",
-    "viem": "^2.23.15",
-    "winston": "^3.17.0",
-    "ws": "^8.18.1"
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -74,18 +66,12 @@
     "eslint-config-prettier": "^10.0.2",
     "globals": "^16.0.0",
     "hardhat": "^2.22.19",
-    "hardhat-gas-reporter": "^2.2.2",
+    "hardhat-gas-reporter": "^1.0.8",
     "nodemon": "^3.1.9",
     "prettier": "^3.5.3",
     "solidity-coverage": "^0.8.1",
     "ts-node": ">=8.0.0",
     "typechain": "^8.3.0",
     "typescript": ">=4.5.0"
-  },
-  "resolutions": {
-    "ws": "^8.18.1",
-    "cookie": "^1.0.2",
-    "semver": "^7.7.1",
-    "**/utf7/semver": "^7.7.1"
   }
 }

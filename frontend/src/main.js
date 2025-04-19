@@ -2,19 +2,20 @@ import { Buffer } from 'buffer';
 globalThis.Buffer = Buffer;
 
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
 import axios from 'axios';
 
 // Настройка axios
-// В Docker контейнере localhost:8000 не работает, поэтому используем явное значение
-const apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:8000' : import.meta.env.VITE_API_URL;
-axios.defaults.baseURL = apiUrl;
-axios.defaults.withCredentials = true;
+axios.defaults.baseURL = ''; // Пустой baseURL, так как мы используем прокси
+axios.defaults.withCredentials = true; // Важно для работы с сессиями
 
 // Создаем и монтируем приложение Vue
 const app = createApp(App);
+const pinia = createPinia();
 
+app.use(pinia);
 app.use(router);
 
 // Не используем заглушки, так как сервер работает
@@ -27,8 +28,6 @@ app.use(router);
 //   ]).catch(err => console.error('Failed to load API mocks:', err));
 // }
 
-console.log('API URL:', apiUrl);
-console.log('main.js: Starting application with router');
+console.log('API URL:', import.meta.env.VITE_API_URL);
 
 app.mount('#app');
-console.log('main.js: Application with router mounted');

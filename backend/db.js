@@ -1,14 +1,6 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Выводим настройки подключения (без пароля)
-console.log('Настройки подключения к базе данных:');
-console.log('DATABASE_URL:', process.env.DATABASE_URL?.replace(/:([^:@]+)@/, ':***@'));
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_PORT:', process.env.DB_PORT);
-console.log('DB_NAME:', process.env.DB_NAME);
-console.log('DB_USER:', process.env.DB_USER);
-
 // Создаем пул соединений с базой данных
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -19,30 +11,10 @@ const pool = new Pool({
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Ошибка подключения к базе данных:', err);
-    
-    // Пробуем альтернативное подключение
-    console.log('Попытка альтернативного подключения через прямые параметры...');
-    
-    const altPool = new Pool({
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      database: process.env.DB_NAME || 'dapp_db',
-      user: process.env.DB_USER || 'dapp_user',
-      password: process.env.DB_PASSWORD,
-    });
-    
-    altPool.query('SELECT NOW()', (altErr, altRes) => {
-      if (altErr) {
-        console.error('Альтернативное подключение тоже не удалось:', altErr);
-        console.log('Переключение на временное хранилище данных в памяти...');
-        module.exports = createInMemoryStorage();
-      } else {
-        console.log('Альтернативное подключение успешно:', altRes.rows[0]);
-        // Заменяем основной пул на альтернативный
-        module.exports.pool = altPool;
-        module.exports.query = (text, params) => altPool.query(text, params);
-      }
-    });
+    console.log('Переключение на временное хранилище данных в памяти...');
+
+    // Если не удалось подключиться к базе данных, используем временное хранилище
+    module.exports = createInMemoryStorage();
   } else {
     console.log('Успешное подключение к базе данных:', res.rows[0]);
   }
@@ -53,25 +25,10 @@ const query = (text, params) => {
   return pool.query(text, params);
 };
 
-// Функция для сохранения гостевого сообщения в базе данных
-async function saveGuestMessageToDatabase(message, language, guestId) {
-  try {
-    await query(`
-      INSERT INTO guest_messages (guest_id, content, language, created_at)
-      VALUES ($1, $2, $3, NOW())
-    `, [guestId, message, language]);
-    console.log('Гостевое сообщение успешно сохранено:', message);
-  } catch (error) {
-    console.error('Ошибка при сохранении гостевого сообщения:', error);
-    throw error; // Пробрасываем ошибку дальше
-  }
-}
-
 // Экспортируем функции для работы с базой данных
 module.exports = {
   query,
   pool,
-  saveGuestMessageToDatabase,
 };
 
 // Функция для создания временного хранилища данных в памяти

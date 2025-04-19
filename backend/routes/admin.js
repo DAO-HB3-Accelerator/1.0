@@ -1,38 +1,15 @@
 const express = require('express');
 const router = express.Router();
+const db = require('../db');
 const { requireAdmin } = require('../middleware/auth');
-const authService = require('../services/auth-service');
-const logger = require('../utils/logger');
 
-// Роли
-router.get('/roles', requireAdmin, async (req, res) => {
+// Маршрут для получения списка пользователей
+router.get('/users', async (req, res) => {
   try {
-    const roles = await authService.getAllRoles();
-    res.json({ success: true, roles });
+    const result = await db.query('SELECT * FROM users');
+    res.json(result.rows);
   } catch (error) {
-    logger.error('Error getting roles:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.post('/roles', requireAdmin, async (req, res) => {
-  try {
-    const { name, permissions } = req.body;
-    const role = await authService.createRole(name, permissions);
-    res.json({ success: true, role });
-  } catch (error) {
-    logger.error('Error creating role:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Админ функции
-router.get('/users', requireAdmin, async (req, res) => {
-  try {
-    const users = await authService.getAllUsers();
-    res.json({ success: true, users });
-  } catch (error) {
-    logger.error('Error getting users:', error);
+    console.error('Ошибка при получении списка пользователей:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

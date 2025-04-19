@@ -1,77 +1,45 @@
 # Зависимости
 node_modules/
-package-lock.json
+yarn-error.log
 
-# Файлы окружения
+# Переменные окружения
 .env
-.env.*
-!.env.example
+.env.local
+.env.development
+.env.test
+.env.production
 
-# Сборка и кэш
-/dist/
-/.nuxt/
-/.output/
-/build/
-/.cache/
-/.vite/
+# Сборка
+dist/
+dist-ssr/
+build/
+
+# Кэш
 .cache/
 .temp/
+.vite/
 
-# Логи и отчеты
-*.log
+# Логи
 logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-coverage/
-test-results/
-jest-results/
+pnpm-debug.log*
 
-# Локальные настройки и IDE
-.vscode/
+# Файлы IDE
 .idea/
-*.sublime-*
-*.code-workspace
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Системные файлы
 .DS_Store
 Thumbs.db
-*.swp
-*.swo
 
-# Клиентские секреты
-*.secret.js
-*.key.js
-*-secret.*
-*-key.*
-*.pem
-*.key
-
-# Специфичные для Vue
-.nuxt/
-.output/
-dist/
-.cache/
-.yarn/
-
-# PWA assets
-/public/sw.js
-/public/workbox-*.js
-/public/service-worker.js
-
-# Временные файлы
-tmp/
-temp/
-*.tmp
-*~
-
-# Локальные конфигурации
-*.local.js
-*.local.json
-local.config.js
-
-# Кэш TypeScript
-*.tsbuildinfo
-
-# Генерируемые файлы
-/generated/
-auto-imports.d.ts
-components.d.ts 
+# Локальные файлы
+*.local

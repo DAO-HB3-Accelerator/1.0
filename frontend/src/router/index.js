@@ -1,43 +1,47 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
 import HomeView from '../views/HomeView.vue';
-import axios from 'axios';
-
-console.log('router/index.js: Script loaded');
+import ChatView from '../views/ChatView.vue';
 
 const routes = [
   {
     path: '/',
     name: 'home',
-    component: HomeView
+    component: HomeView,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/chat',
+    name: 'chat',
+    component: ChatView,
+    meta: { requiresAuth: true }
   }
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    return savedPosition || { top: 0 };
+  },
 });
 
-console.log('router/index.js: Router created');
-
-// Защита маршрутов
+// Навигационный хук для проверки аутентификации
 router.beforeEach(async (to, from, next) => {
-  // Если пытаемся перейти на несуществующий маршрут, перенаправляем на главную
-  if (!to.matched.length) {
-    return next({ name: 'home' });
+  const authStore = useAuthStore();
+  
+  // Проверяем аутентификацию, если она еще не проверена
+  if (!authStore.isAuthenticated) {
+    try {
+      await authStore.checkAuth();
+    } catch (error) {
+      console.error('Error checking auth:', error);
+    }
   }
   
-  // Проверяем аутентификацию, если маршрут требует авторизации
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    try {
-      const response = await axios.get('/api/auth/check');
-      if (response.data.authenticated) {
-        next();
-      } else {
-        next('/login');
-      }
-    } catch (error) {
-      next('/login');
-    }
+  // Проверка прав доступа
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next({ name: 'home' });
   } else {
     next();
   }

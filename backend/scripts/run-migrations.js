@@ -1,8 +1,13 @@
-const fs = require('fs').promises;
+const { Pool } = require('pg');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
-const { pool } = require('../db');
-const logger = require('../utils/logger');
+
+// Подключение к БД
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
 async function runMigrations() {
   try {
@@ -13,64 +18,39 @@ async function runMigrations() {
       CREATE TABLE IF NOT EXISTS migrations (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        applied_at TIMESTAMP DEFAULT NOW()
       )
     `);
 
-    // Получаем список выполненных миграций
+    // Получаем список уже примененных миграций
     const { rows } = await pool.query('SELECT name FROM migrations');
-    const executedMigrations = new Set(rows.map(row => row.name));
+    const appliedMigrations = rows.map((row) => row.name);
 
-    // Читаем файлы миграций
-    const migrationsDir = path.join(__dirname, '../db/migrations');
-    const files = await fs.readdir(migrationsDir);
+    // Получаем список файлов миграций
+    const migrationsDir = path.join(__dirname, '../migrations');
+    const migrationFiles = fs
+      .readdirSync(migrationsDir)
+      .filter((file) => file.endsWith('.sql'))
+      .sort(); // Сортируем файлы по имени
 
-    // Сортируем файлы по номеру
-    const migrationFiles = files
-      .filter(f => f.endsWith('.sql'))
-      .sort((a, b) => {
-        const numA = parseInt(a.split('_')[0]);
-        const numB = parseInt(b.split('_')[0]);
-        return numA - numB;
-      });
-
-    // Выполняем миграции
+    // Применяем миграции, которые еще не были применены
     for (const file of migrationFiles) {
-      if (!executedMigrations.has(file)) {
+      if (!appliedMigrations.includes(file)) {
+        console.log(`Применение миграции: ${file}`);
+
+        // Читаем содержимое файла миграции
         const filePath = path.join(migrationsDir, file);
-        const sql = await fs.readFile(filePath, 'utf-8');
+        const sql = fs.readFileSync(filePath, 'utf8');
 
-        await pool.query('BEGIN');
-        try {
-          await pool.query(sql);
-          await pool.query('INSERT INTO migrations (name) VALUES ($1)', [file]);
-          await pool.query('COMMIT');
-          logger.info(`Migration ${file} executed successfully`);
-        } catch (error) {
-          await pool.query('ROLLBACK');
-          throw error;
-        }
-      }
-    }
+        // Выполняем SQL-запросы из файла
+        await pool.query(sql);
 
-    // Выполняем SQL-функции
-    const functionsDir = path.join(migrationsDir, 'functions');
-    if (await fs.stat(functionsDir).then(() => true).catch(() => false)) {
-      const functionFiles = await fs.readdir(functionsDir);
-      
-      for (const file of functionFiles) {
-        if (file.endsWith('.sql')) {
-          const filePath = path.join(functionsDir, file);
-          const sql = await fs.readFile(filePath, 'utf-8');
-          
-          try {
-            await pool.query(sql);
-            logger.info(`Function ${file} executed successfully`);
-          } catch (error) {
-            logger.error(`Error executing function ${file}:`, error);
-            throw error;
-          }
-        }
+        // Записываем информацию о примененной миграции
+        await pool.query('INSERT INTO migrations (name) VALUES ($1)', [file]);
+
+        console.log(`Миграция ${file} успешно применена`);
+      } else {
+        console.log(`Миграция ${file} уже применена`);
       }
     }
 

@@ -1,13 +1,12 @@
 const { initTelegramBot } = require('./telegram-service');
-const emailBot = require('./emailBot');
-const telegramBot = require('./telegramBot');
-const aiAssistant = require('./ai-assistant');
+const { initEmailBot, sendEmail, checkEmails } = require('./emailBot');
 const {
   initializeVectorStore,
   getVectorStore,
   similaritySearch,
   addDocument,
 } = require('./vectorStore');
+const { processMessage, getUserInfo, getConversationHistory } = require('./ai-assistant');
 // ... другие импорты
 
 module.exports = {
@@ -15,9 +14,9 @@ module.exports = {
   initTelegramBot,
 
   // Email
-  emailBot,
-  sendEmail: emailBot.sendEmail,
-  checkEmails: emailBot.checkEmails,
+  initEmailBot,
+  sendEmail,
+  checkEmails,
 
   // Vector Store
   initializeVectorStore,
@@ -26,10 +25,8 @@ module.exports = {
   addDocument,
 
   // AI Assistant
-  processMessage: aiAssistant.processMessage,
-  getUserInfo: aiAssistant.getUserInfo,
-  getConversationHistory: aiAssistant.getConversationHistory,
-
-  telegramBot,
-  aiAssistant
+  processMessage,
+  getUserInfo,
+  getConversationHistory,
+  // ... другие экспорты
 };

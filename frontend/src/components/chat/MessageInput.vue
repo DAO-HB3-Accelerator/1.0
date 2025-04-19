@@ -44,40 +44,15 @@ const handleEnter = (event) => {
 
 // Отправка сообщения
 const sendMessage = async () => {
-  const messageText = message.value.trim();
-  if (!messageText) return;
-
-  const userMessage = {
-    id: Date.now(),
-    content: messageText,
-    role: auth.isAuthenticated ? 'user' : 'guest',
-    timestamp: new Date().toISOString()
-  };
-
-  messages.value.push(userMessage);
+  if (!message.value.trim() || sending.value) return;
 
   try {
-    // Логируем параметры запроса
-    console.log('Sending message to Ollama:', {
-      message: messageText,
-      language: userLanguage.value
-    });
+    sending.value = true;
 
-    const response = await axios.post('/api/chat/message', {
-      message: messageText,
-      language: userLanguage.value
-    });
-
-    // Логируем ответ от Ollama
-    console.log('Response from Ollama:', response.data);
-
-    // Обработка ответа
-    messages.value.push({
-      id: Date.now() + 1,
-      content: response.data.message,
-      role: 'assistant',
-      timestamp: new Date().toISOString()
-    });
+    const response = await axios.post(
+      `/api/messages/conversations/${props.conversationId}/messages`,
+      { content: message.value }
+    );
 
     // Очищаем поле ввода
     message.value = '';
@@ -90,7 +65,7 @@ const sendMessage = async () => {
     // Уведомляем родительский компонент о новых сообщениях
     emit('message-sent', [response.data.userMessage, response.data.aiMessage]);
   } catch (error) {
-    console.error('Ошибка при отправке сообщения:', error);
+    console.error('Error sending message:', error);
   } finally {
     sending.value = false;
   }
@@ -106,61 +81,6 @@ defineExpose({
   resetInput,
   focus: () => textareaRef.value?.focus(),
 });
-
-const sendGuestMessage = async (messageText) => {
-  if (!messageText.trim()) return;
-
-  const userMessage = {
-    id: Date.now(),
-    content: messageText,
-    role: 'user',
-    timestamp: new Date().toISOString(),
-    isGuest: true
-  };
-
-  // Добавляем сообщение пользователя в локальную историю
-  messages.value.push(userMessage);
-
-  // Сохраняем сообщение в массиве гостевых сообщений
-  guestMessages.value.push(userMessage);
-
-  // Сохраняем гостевые сообщения в localStorage
-  localStorage.setItem('guestMessages', JSON.stringify(guestMessages.value));
-
-  // Очищаем поле ввода
-  newMessage.value = '';
-
-  // Прокрутка вниз
-  await nextTick();
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-  }
-
-  // Устанавливаем состояние загрузки
-  isLoading.value = true;
-
-  // Вместо отправки запроса к Ollama, отправляем сообщение с кнопками для аутентификации
-  const authMessage = {
-    id: Date.now() + 1,
-    content: 'Чтобы продолжить, пожалуйста, аутентифицируйтесь.',
-    role: 'assistant',
-    timestamp: new Date().toISOString(),
-    isGuest: true,
-    showAuthOptions: true // Указываем, что нужно показать кнопки аутентификации
-  };
-
-  messages.value.push(authMessage);
-  guestMessages.value.push(authMessage);
-  localStorage.setItem('guestMessages', JSON.stringify(guestMessages.value));
-
-  // Прокрутка вниз
-  await nextTick();
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-  }
-
-  isLoading.value = false;
-};
 </script>
 
 <style scoped>

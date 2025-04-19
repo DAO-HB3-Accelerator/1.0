@@ -1,70 +1,45 @@
 # Зависимости
 node_modules/
-package-lock.json
+yarn-error.log
 
-# Файлы окружения
+# Переменные окружения
 .env
-.env.*
-!.env.example
+.env.local
+.env.development
+.env.test
+.env.production
 
 # Логи
-logs/
-*.log
+logs/*
+!logs/.gitkeep
 
-# Временные файлы
+# Кэш и временные файлы
+.cache/
+cache/
+dist/
+build/
 tmp/
 temp/
 
-# Кэш и сборка
-.cache/
-dist/
-build/
-
-# База данных и миграции
-migrations/backup/
-*.db
-*.sqlite
-*.sqlite3
-*.dump
-
-# Сессии и сохраненные данные
-sessions/
-storage/
-uploads/
-data/
-vector_store/
-
-# Ключи и сертификаты
-*.pem
-*.key
-*.p12
-*.pfx
-
-# Специфичные для Ethereum
+# Артефакты Hardhat
 artifacts/
 cache/
+typechain/
 typechain-types/
-hardhat-cache/
-forge-cache/
 
-# Специфичные для Node.js
-.npm
-.yarn
-.pnp.*
+# Файлы покрытия кода
 coverage/
-.nyc_output/
+coverage.json
 
-# JWT и токены
-*.jwt
-*token*
-*secret*
-
-# Локальные конфигурации
-config/local.*
-*.local.js
-
-# IDE и редакторы
+# Файлы IDE
 .idea/
 .vscode/
-*.swp
-*.swo 
+*.sublime-project
+*.sublime-workspace
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Файлы сессий
+sessions/
